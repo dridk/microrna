@@ -1,14 +1,21 @@
-from PIL import Image, ImageColor
+from PIL import Image, ImageColor, ImageDraw
+from Bio.SeqIO.FastaIO import FastaIterator
+import os
 import argparse 
 
 def draw_sequence(seq: str):
     size = len(seq)
+
+    if size > 1000:
+        return None
+
     pos  = [size,size]
     vec  = (1,1)
     col  = ImageColor.getrgb("black")
     im = Image.new("RGB", (size*2, size*2), (255,255,255))
 
-    for base in seq: 
+
+    for base in seq.upper(): 
         if base == 'A':
             vec = (1,0)
             col = ImageColor.getrgb("green")
@@ -26,16 +33,21 @@ def draw_sequence(seq: str):
         pos[1] = pos[1] + vec[1]
     
         im.putpixel(pos, col)
-
     return im 
 
 
-parser = argparse.ArgumentParser(description='Draw sequence according ')
-parser.add_argument('sequences',type=str,help='an integer for the accumulator')
-parser.add_argument("-o", "--output", action='store', dest='output', help="file output ")
+def save_image_from_fasta(filename, output="output"):
 
-args = parser.parse_args()
-image = draw_sequence(args.sequences)
-image.save(args.output)
+    os.makedirs(output)
+    with open(filename) as handle:
+        for record in FastaIterator(handle):
+            img = draw_sequence(record.seq)
+            print(record.id+" processed")
+            if img is not None:
+                img.save(os.path.join(output,record.id+".png"))
+                del(img)
+            
 
-image.show()
+
+
+save_image_from_fasta("mir_refseq_slop50.fasta")
